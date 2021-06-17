@@ -2,10 +2,26 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 contract Election {
-    string public candidate;
+
+  uint public candidatesCount;
+
+    struct Candidate {
+      uint id;
+      string name;
+      uint voteCount;
+    }
+
+    mapping (uint => Candidate) public candidates;
 
     constructor() {
-        candidate = "candiidate 1";
+        addCandidate('Apugo George Kelechi');
+        addCandidate('Joseph Owonwo');
+        addCandidate('Ernest Amabibi');
+    }
+
+    function addCandidate (string memory _name) private {
+      candidatesCount ++;
+      candidates[candidatesCount] = Candidate(candidatesCount, _name, 0);
     }
 }
 

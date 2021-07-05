@@ -4,35 +4,31 @@ import "./App.css";
 import getWeb3 from "./getWeb3";
 import Election from "./contracts/Election.json";
 
-/* const Candidate = ({id, name, voteCount}) => {
-  return (
-    <div>
-      <p>{id}</p>
-      <p>{name}</p>
-      <p>{voteCount}</p>
-    <div>
-  )
-}; */
-
 const App = () => {
   const [value, setValue] = React.useState("");
   const [state, setState] = React.useState(null);
+  const [voted, setVoted] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [candidates, setCandidates] = React.useState([]);
 
+  const handleChange = (e) => {
+    e.preventDefault();
+    setValue(e.target.value);
+  };
+
   const electionCandidates = candidates.map((candidate) => {
-            return (
-              <tr className="candidate" key={candidate.id}>
-                <td>{candidate.id}</td>
-                <td>{candidate.name}</td>
-                <td>{candidate.voteCount}</td>
-              </tr>
-            )
-        })
+    return (
+      <tr className="candidate" key={candidate.id}>
+        <td>{candidate.id}</td>
+        <td>{candidate.name}</td>
+        <td>{candidate.voteCount}</td>
+      </tr>
+    );
+  });
 
   const loadCandidiates = async (contract) => {
     setLoading(true);
-    
+
     try {
       contract.methods
         .candidatesCount()
@@ -43,22 +39,22 @@ const App = () => {
 
           for (let index = 1; index <= count; index++) {
             let promise = contract.methods
-                .candidates(index)
-                .call()
-                .then((res) => {
-                  return res;
-                })
-                .catch((error) => {
-                  console.error("Error from candidates:", error);
+              .candidates(index)
+              .call()
+              .then((res) => {
+                return res;
+              })
+              .catch((error) => {
+                console.error("Error from candidates:", error);
               });
-            promiseArr.push(promise)
+            promiseArr.push(promise);
           }
           return promiseArr;
         })
         .then((promiseArr) => {
           Promise.all(promiseArr).then((values) => {
             setCandidates(values);
-          })
+          });
         })
         .catch((error) => {
           console.error("Error from candidate count:", error);
@@ -67,7 +63,6 @@ const App = () => {
       console.log(error);
     }
     setLoading(false);
-
   };
 
   const connectToWeb3Provider = async () => {
@@ -107,8 +102,42 @@ const App = () => {
   };
 
   const vote = (candidate) => {
-    console.log(candidate);
-  }
+    //console.log(candidate);
+    try {
+      state.contract.methods
+      .vote(candidate)
+      .send({ from: state.accounts[0] }, (error, receipt) => {
+        if (error) {
+          console.log(error);
+        } else {
+          console.log(receipt);
+        }
+      })
+    } catch (error) {
+      console.log(error);
+      return;
+    }
+      /* .on("confirmation", function (confirmationNumber, receipt) {
+        console.log(confirmationNumber, receipt);
+      })
+      .on("receipt", function (receipt) {
+        // receipt example
+        console.log(receipt);
+      })
+      .on("error", function (error, receipt) {
+        // If the transaction was rejected by the network with a receipt, the second parameter will be the receipt.
+        console.log(error, receipt);
+      }); */
+
+    /* .then((res) => {
+        console.log(res);
+      })
+      .catch((error) => {
+        console.log(error);
+      }); */
+
+    setVoted(true);
+  };
 
   const shortenAddress = (address) => {
     try {
@@ -119,7 +148,6 @@ const App = () => {
       console.log(error);
       return "";
     }
-    
   };
 
   React.useEffect(() => {
@@ -133,22 +161,26 @@ const App = () => {
       </header>
 
       <table className="table">
-
-        <tr className="table-header">
-          <th>SN.</th>
-          <th>Candidates Name</th>
-          <th>Vote count</th>
-        </tr>
-
-        {loading ? (
-            <tr><td colspan="3">Loading ... </td></tr>
-        ) : candidates.length === 0 ? (
-          <tr>
-            <td colspan="3">No Candidates to show...</td>
+        <thead>
+          <tr className="table-header">
+            <th>SN.</th>
+            <th>Candidates Name</th>
+            <th>Vote count</th>
           </tr>
-        ) : (
-          electionCandidates
-        )}
+        </thead>
+        <tbody>
+          {loading ? (
+            <tr>
+              <td colSpan="3">Loading ... </td>
+            </tr>
+          ) : candidates.length === 0 ? (
+            <tr>
+              <td colSpan="3">No Candidates to show...</td>
+            </tr>
+          ) : (
+            electionCandidates
+          )}
+        </tbody>
 
         {/* {state && !state.web3 ? (
             <div>Loading Web3, accounts, and contract...</div>
@@ -160,29 +192,45 @@ const App = () => {
           )} */}
       </table>
 
-      <form onSubmit={(e) => {
+      {voted ? (
+        ""
+      ) : (
+        <form
+          onSubmit={(e) => {
             e.preventDefault();
-            vote(value);
-      }}>
-        <label>Select Candidate</label> <br/>
-        <select>
-          <option>-- Select Candidate --</option>
-          {candidates.map((candidate) => {
-            return (
-              <option key={candidate.id} value={candidate.id}>{candidate.name}</option>
-            )
-          })}
-        </select> <br/>
-        <button>Vote</button>
-      </form>
-        <footer>
-          <p>Logged in as: <a href="#">{state && shortenAddress(state.accounts[0])}</a></p>
-          <p> Built by <a href="https://github.com/laviedegeorge">laviedegeorge</a> </p>
-        </footer>
+            vote(parseInt(value));
+          }}
+        >
+          <label>Select Candidate</label> <br />
+          <select value={value} onChange={(e) => handleChange(e)}>
+            <option>-- Select Candidate --</option>
+            {candidates.map((candidate) => {
+              return (
+                <option key={candidate.id} value={candidate.id}>
+                  {candidate.name}
+                </option>
+              );
+            })}
+          </select>{" "}
+          <br />
+          <button>Vote</button>
+        </form>
+      )}
+
+      <footer>
+        <p>
+          Logged in as:{" "}
+          <a href="#">{state && shortenAddress(state.accounts[0])}</a>
+        </p>
+        <p>
+          {" "}
+          Built by <a href="https://github.com/laviedegeorge">
+            laviedegeorge
+          </a>{" "}
+        </p>
+      </footer>
     </div>
   );
 };
-
-
 
 export default App;

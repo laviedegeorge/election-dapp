@@ -31,10 +31,28 @@ contract("Election", (accounts) => {
 
       return electionInstance.candidates(3);
     })
-    then((candidate) => {
+    .then((candidate) => {
       assert.equal(candidate[0], 3, "contains the correct ID");
       assert.equal(candidate[1], "Ernest Amabibi", "contains the correct name");
       assert.equal(candidate[2], 0, "contains the correct votes count");
     })
-  })
+  });
+
+  it("allows a voter to cast a vote", () => {
+    return Election.deployed().then((instance) => {
+      electionInstance = instance;
+      candidateId = 1;
+      return electionInstance.vote(candidateId, { from: accounts[0] });
+    }).then((receipt) => {
+      return electionInstance.voters(accounts[0]);
+    }).then((voted) => {
+      assert(voted, "the voter was marked as voted");
+      return electionInstance.candidates(candidateId);
+    }).then((candidate) => {
+      const voteCount = candidate[2];
+      assert.equal(voteCount, 1, "increments the candidate's vote count");
+    })
+  });
+
+  
 });
